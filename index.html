@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Sorting Visualizer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-theme="light" data-lang="en">
+
+  <!-- MENU -->
+  <div id="menu" class="screen active">
+    <h1 data-i18n="title">Sorting Algorithm Visualizer</h1>
+    <label for="algorithm-select" data-i18n="choose">Choose an algorithm:</label>
+    <select id="algorithm-select">
+      <option value="bubble" data-i18n="bubble">Bubble Sort</option>
+      <option value="insertion" data-i18n="insertion">Insertion Sort</option>
+      <option value="quick" data-i18n="quick">Quick Sort</option>
+      <option value="merge" data-i18n="merge">Merge Sort</option>
+      <option value="heap" data-i18n="heap">Heap Sort</option>
+    </select>
+    <button id="start-btn" data-i18n="startMenu">Start Visualizer</button>
+  </div>
+
+  <!-- VISUALIZER -->
+  <div id="visualizer" class="screen">
+    <div id="controls">
+      <button id="play-pause-btn" data-i18n="play">▶️ Start</button>
+      <button id="reset-btn" data-i18n="reset">🔄 Reset</button>
+
+      <label>
+        <span data-i18n="speedLbl">Speed:</span>
+        <input type="range" id="speed-range" min="1" max="10" value="5">
+      </label>
+
+      <label><input type="checkbox" id="optimised-chk" checked> <span data-i18n="optimised">Optimised</span></label>
+      <label><input type="checkbox" id="sound-chk" checked> <span data-i18n="sound">Sound</span></label>
+
+      <label>
+        <span data-i18n="styleLbl">Style:</span>
+        <select id="style-select">
+          <option value="bars" data-i18n="bars">Bars</option>
+          <option value="dots" data-i18n="dots">Dots</option>
+        </select>
+      </label>
+
+      <button id="lang-btn">🌐 RU/EN</button>
+      <button id="theme-btn">🌓 Theme</button>
+      <button id="help-btn" data-i18n="help">❓ Help</button>
+      <button id="back-btn" data-i18n="menu">⬅️ Menu</button>
+    </div>
+
+    <canvas id="canvas"></canvas>
+    <div id="runtime">Runtime: 0 ms</div>
+  </div>
+
+  <!-- HELP MODAL -->
+  <div id="help-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2 data-i18n="helpTitle">Help Guide</h2>
+      <ul id="help-list"></ul>
+      <button id="close-help-btn" data-i18n="close">Close</button>
+    </div>
+  </div>
+
+  <script type="module" src="visualizer.js"></script>
+</body>
+</html>
