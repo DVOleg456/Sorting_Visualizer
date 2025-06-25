@@ -19,7 +19,6 @@ const resetBtn = document.getElementById("reset-btn");
 const speedSlider = document.getElementById("speed-range");
 const optimChk = document.getElementById("optimised-chk");
 const soundChk = document.getElementById("sound-chk");
-const styleSelect = document.getElementById("style-select");
 
 const langBtn = document.getElementById("lang-btn");
 const themeBtn = document.getElementById("theme-btn");
@@ -55,9 +54,6 @@ const dict = {
     speedLbl: "Speed:",
     optimised: "Optimised",
     sound: "Sound",
-    styleLbl: "Style:",
-    bars: "Bars",
-    dots: "Dots",
     help: "❓ Help",
     menu: "⬅️ Menu",
     helpTitle: "Help Guide",
@@ -68,7 +64,6 @@ const dict = {
       "Speed: drag 1 (slow) → 10 (fast).",
       "Optimised: early‑exit version.",
       "Sound: swap/done effects.",
-      "Style: Bars or Dots.",
       "Menu: pick a different algorithm."
     ]
   },
@@ -87,9 +82,6 @@ const dict = {
     speedLbl: "Скорость:",
     optimised: "Оптимизация",
     sound: "Звук",
-    styleLbl: "Стиль:",
-    bars: "Столбцы",
-    dots: "Точки",
     help: "❓ Справка",
     menu: "⬅️ Меню",
     helpTitle: "Справка",
@@ -100,7 +92,6 @@ const dict = {
       "Скорость: 1 (медленно) → 10 (быстро).",
       "Оптимизация: ранний выход.",
       "Звук: эффекты обмена/завершения.",
-      "Стиль: Столбцы или Точки.",
       "Меню: выбрать алгоритм."
     ]
   }
@@ -131,17 +122,20 @@ let array = [], generator = null;
 let isRunning = false, isPaused = true;
 let speed = 300, startTime = 0, elapsed = 0;
 let highlight = [], highlightColor = "#ff6b6b";
+let quickPivot = -1;
+let mergeAux = null, mergeRange = null;
+let heapPositions = [], heapSortedArray = [];
 
 /* Speed helper */
 function updateSpeed() {
-  speed = 550 - Number(speedSlider.value) * 50;
+  speed = 600 - Number(speedSlider.value) * 50;
 }
 updateSpeed();
 
 /* Resize canvas */
 function resizeCanvas() {
   const w = Math.min(window.innerWidth - 40, 960);
-  const h = window.innerWidth < 600 ? window.innerHeight * 0.5 : window.innerHeight * 0.4;
+  const h = window.innerWidth < 600 ? window.innerHeight * 0.5 : window.innerHeight * 0.45;
   cvs.width = w;
   cvs.height = h;
 }
@@ -149,11 +143,13 @@ resizeCanvas();
 window.addEventListener("resize", resizeCanvas);
 
 /* Utilities */
-function randArray(sz = 12, mn = 5, mx = 60) {
+function randArray(sz = 15, mn = 5, mx = 60) {
   return Array.from({ length: sz }, () => Math.floor(Math.random() * (mx - mn + 1)) + mn);
 }
+
 function chooseGenerator() {
-  const data = [...array], opt = optimChk.checked;
+  const data = [...array];
+  const opt = optimChk.checked;
   switch (algSelect.value) {
     case "bubble": return bubbleSort(data, opt);
     case "insertion": return insertionSort(data, opt);
@@ -165,11 +161,12 @@ function chooseGenerator() {
 }
 
 /* Drawing */
-function draw() {
+
+function drawBubble() {
   ctx.clearRect(0, 0, cvs.width, cvs.height);
   const n = array.length;
   const maxVal = Math.max(...array);
-  const barW = Math.max(8, Math.floor(cvs.width / (n * 1.15)));
+  const barW = Math.max(8, Math.floor(cvs.width / (n * 1.2)));
   const gap = Math.floor(barW * 0.15);
   const tot = barW + gap;
   const ofs = (cvs.width - (tot * n - gap)) / 2;
@@ -177,19 +174,11 @@ function draw() {
 
   array.forEach((v, i) => {
     const x = ofs + i * tot;
-    const col = highlight.includes(i) ? highlightColor : "#6ea8ff";
+    const bh = (v / maxVal) * hLim;
+    const col = highlight.includes(i) ? "#ff6b6b" : "#6ea8ff";
 
-    if (styleSelect.value === "bars") {
-      const bh = (v / maxVal) * hLim;
-      ctx.fillStyle = col;
-      ctx.fillRect(x, cvs.height - bh, barW, bh);
-    } else {
-      const cy = cvs.height - (v / maxVal) * hLim;
-      ctx.fillStyle = col;
-      ctx.beginPath();
-      ctx.arc(x + barW / 2, cy, 6, 0, 2 * Math.PI);
-      ctx.fill();
-    }
+    ctx.fillStyle = col;
+    ctx.fillRect(x, cvs.height - bh, barW, bh);
 
     ctx.fillStyle = document.body.dataset.theme === "dark" ? "#ddd" : "#444";
     ctx.font = "10px Inter";
@@ -198,85 +187,341 @@ function draw() {
   });
 }
 
-/* Animate */
+function drawInsertion() {
+  ctx.clearRect(0, 0, cvs.width, cvs.height);
+  const n = array.length;
+  const maxVal = Math.max(...array);
+  const gap = cvs.width / (n + 1);
+  const yBase = cvs.height * 0.7;
+
+  array.forEach((v, i) => {
+    const x = gap * (i + 1);
+    const radius = 6 + (v / maxVal) * 14;
+    ctx.beginPath();
+    ctx.arc(x, yBase, radius, 0, 2 * Math.PI);
+    ctx.fillStyle = highlight.includes(i) ? "#ff8c42" : "#6ea8ff";
+    ctx.fill();
+
+    ctx.fillStyle = document.body.dataset.theme === "dark" ? "#ddd" : "#222";
+    ctx.font = "12px Inter";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(v, x, yBase);
+  });
+}
+
+function drawQuick() {
+  ctx.clearRect(0, 0, cvs.width, cvs.height);
+  const n = array.length;
+  const maxVal = Math.max(...array);
+  const barW = Math.max(8, Math.floor(cvs.width / (n * 1.2)));
+  const gap = Math.floor(barW * 0.15);
+  const tot = barW + gap;
+  const ofs = (cvs.width - (tot * n - gap)) / 2;
+  const hLim = cvs.height * 0.85;
+
+  array.forEach((v, i) => {
+    const x = ofs + i * tot;
+    const bh = (v / maxVal) * hLim;
+
+    let col = "#6ea8ff";
+    if (i === quickPivot) col = "#ff6b6b";
+    else if (highlight.includes(i)) col = "#69ff69";
+
+    ctx.fillStyle = col;
+    ctx.fillRect(x, cvs.height - bh, barW, bh);
+
+    ctx.fillStyle = document.body.dataset.theme === "dark" ? "#ddd" : "#444";
+    ctx.font = "10px Inter";
+    ctx.textAlign = "center";
+    ctx.fillText(v, x + barW / 2, cvs.height - 5);
+  });
+}
+
+// Merge sort: bars + top aux array (circles) for merging visualization
+function drawMerge() {
+  ctx.clearRect(0, 0, cvs.width, cvs.height);
+
+  const n = array.length;
+  const maxVal = Math.max(...array);
+  const barW = Math.max(18, Math.floor(cvs.width / (n * 1.5)));
+  const gap = Math.floor(barW * 0.3);
+  const tot = barW + gap;
+  const ofs = (cvs.width - (tot * n - gap)) / 2;
+  const bottomY = cvs.height * 0.75;
+  const topY = cvs.height * 0.3;
+
+  // Draw main array as squares
+  array.forEach((v, i) => {
+    const x = ofs + i * tot;
+    const col = highlight.includes(i) ? "#ff6b6b" : "#6ea8ff";
+
+    ctx.fillStyle = col;
+    ctx.fillRect(x, bottomY - barW, barW, barW);
+
+    ctx.fillStyle = document.body.dataset.theme === "dark" ? "#ddd" : "#444";
+    ctx.font = "12px Inter";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(v, x + barW / 2, bottomY - barW / 2);
+  });
+
+  // Draw aux array on top as circles showing merged part progress
+  if (mergeAux && mergeRange) {
+    mergeAux.forEach((val, idx) => {
+      const x = ofs + (mergeRange.left + idx) * tot + barW / 2;
+      ctx.beginPath();
+      ctx.arc(x, topY, barW * 0.35, 0, 2 * Math.PI);
+      ctx.fillStyle = "#ff9900";
+      ctx.fill();
+
+      ctx.fillStyle = document.body.dataset.theme === "dark" ? "#222" : "#222";
+      ctx.font = "14px Inter";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(val, x, topY);
+    });
+  }
+}
+
+// Heap sort: Draw heap tree + sorted array squares below
+function drawHeap() {
+  ctx.clearRect(0, 0, cvs.width, cvs.height);
+
+  const n = array.length;
+  const levels = Math.floor(Math.log2(n)) + 1;
+  heapPositions = [];
+
+  const vertGap = cvs.height * 0.11;
+  const topMargin = 40;
+  const radius = 18;
+
+  // Calculate node positions
+  for (let lvl = 0; lvl < levels; lvl++) {
+    const nodesInLevel = Math.min(2 ** lvl, n - (2 ** lvl - 1));
+    const gap = cvs.width / (nodesInLevel + 1);
+    const y = topMargin + vertGap * lvl;
+    for (let j = 0; j < nodesInLevel; j++) {
+      const idx = 2 ** lvl - 1 + j;
+      const x = gap * (j + 1);
+      heapPositions[idx] = { x, y };
+    }
+  }
+
+  // Draw edges
+  ctx.strokeStyle = "#888";
+  ctx.lineWidth = 2;
+  for (let i = 0; i < n; i++) {
+    const p = heapPositions[i];
+    const left = heapPositions[2 * i + 1];
+    const right = heapPositions[2 * i + 2];
+    if (left) {
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(left.x, left.y);
+      ctx.stroke();
+    }
+    if (right) {
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(right.x, right.y);
+      ctx.stroke();
+    }
+  }
+
+  // Draw nodes as circles
+  array.forEach((v, i) => {
+    const pos = heapPositions[i];
+    const col = highlight.includes(i) ? "#ff6b6b" : "#6ea8ff";
+
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, radius, 0, 2 * Math.PI);
+    ctx.fillStyle = col;
+    ctx.fill();
+
+    ctx.fillStyle = document.body.dataset.theme === "dark" ? "#ddd" : "#222";
+    ctx.font = "14px Inter";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(v, pos.x, pos.y);
+  });
+
+  // Draw sorted array squares below the tree
+  if (heapSortedArray.length > 0) {
+    const squareSize = 28;
+    const gap = 8;
+    const totalWidth = heapSortedArray.length * (squareSize + gap) - gap;
+    const startX = (cvs.width - totalWidth) / 2;
+    const y = heapPositions[heapPositions.length - 1].y + 50;
+
+    heapSortedArray.forEach((val, i) => {
+      const x = startX + i * (squareSize + gap);
+      ctx.fillStyle = "#ff9900";
+      ctx.fillRect(x, y, squareSize, squareSize);
+
+      ctx.fillStyle = document.body.dataset.theme === "dark" ? "#222" : "#222";
+      ctx.font = "14px Inter";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(val, x + squareSize / 2, y + squareSize / 2);
+    });
+  }
+}
+
+function draw() {
+  switch (algSelect.value) {
+    case "bubble": drawBubble(); break;
+    case "insertion": drawInsertion(); break;
+    case "quick": drawQuick(); break;
+    case "merge": drawMerge(); break;
+    case "heap": drawHeap(); break;
+  }
+}
+
+/* State resets */
+function resetState() {
+  highlight = [];
+  quickPivot = -1;
+  mergeAux = null;
+  mergeRange = null;
+  heapSortedArray = [];
+}
+
+/* Update animation state from generator */
+function updateState(action, i, j, arr, extra) {
+  array = arr;
+  resetState();
+
+  if (action === "compare") highlight = [i, j];
+  else if (action === "swap") highlight = [i, j];
+  else if (action === "pivot") quickPivot = i;
+  else if (action === "merge") {
+    mergeRange = { left: extra.low, right: extra.high };
+    mergeAux = extra.aux || null;
+  } else if (action === "done") {
+    highlight = [];
+    quickPivot = -1;
+    mergeAux = null;
+    mergeRange = null;
+    heapSortedArray = [];
+  }
+
+  // For heap, capture sorted part to show squares below tree
+  if (algSelect.value === "heap" && extra && "sortedArray" in extra) {
+    heapSortedArray = extra.sortedArray.slice().reverse(); // Reverse so sorted on right side
+  }
+}
+
+/* Animation step */
 function step() {
   if (isPaused) return;
+
   const { value, done } = generator.next();
+
   if (done) {
-    highlight = [];
-    draw();
-    if (soundChk.checked) doneS.play();
-    isRunning = isPaused = false;
-    elapsed = Date.now() - startTime;
-    runtimeLbl.textContent = `Runtime: ${elapsed} ms`;
+    doneS.play();
+    isPaused = false;
+    isRunning = false;
+    elapsed = performance.now() - startTime;
+    runtimeLbl.textContent = `Runtime: ${elapsed.toFixed(0)} ms`;
     playBtn.textContent = dict[document.body.dataset.lang].play;
+    draw();
     return;
   }
-  const [act, i, j, snap] = value;
-  array = snap;
-  highlight = [i, j];
-  highlightColor = act === "compare" ? "#ffbd69" : "#ff6b6b";
-  if (act === "swap" && soundChk.checked) swapS.play();
+
+  const [action, i, j, snap, extra] = value;
+  updateState(action, i, j, snap, extra);
+
+  if (action === "swap" && soundChk.checked) swapS.play();
+
+  elapsed = performance.now() - startTime;
+  runtimeLbl.textContent = `Runtime: ${elapsed.toFixed(0)} ms`;
+
   draw();
-  elapsed = Date.now() - startTime;
-  runtimeLbl.textContent = `Runtime: ${elapsed} ms`;
+
   setTimeout(step, speed);
 }
 
-/* Initialize visualizer */
-function initViz() {
+/* Control handlers */
+
+function start() {
+  resetState();
   array = randArray();
   generator = chooseGenerator();
-  highlight = [];
-  isRunning = false;
-  isPaused = true;
-  elapsed = 0;
-  updateSpeed();
-  draw();
-  runtimeLbl.textContent = "Runtime: 0 ms";
-  playBtn.textContent = dict[document.body.dataset.lang].play;
-}
 
-/* Event listeners */
-startBtn.addEventListener("click", () => {
+  isRunning = true;
+  isPaused = false;
+  startTime = performance.now();
+  elapsed = 0;
+
+  playBtn.textContent = dict[document.body.dataset.lang].pause;
+
   menu.classList.remove("active");
   viz.classList.add("active");
-  initViz();
-});
+
+  step();
+}
+
+startBtn.addEventListener("click", start);
 
 playBtn.addEventListener("click", () => {
-  if (!isRunning) {
-    isRunning = true;
-    isPaused = false;
-    startTime = Date.now() - elapsed;
-    playBtn.textContent = dict[document.body.dataset.lang].pause;
+  if (!isRunning) return start();
+  isPaused = !isPaused;
+  playBtn.textContent = isPaused ? dict[document.body.dataset.lang].play : dict[document.body.dataset.lang].pause;
+  if (!isPaused) {
+    startTime = performance.now() - elapsed;
     step();
-  } else {
-    isPaused = !isPaused;
-    playBtn.textContent = isPaused ? dict[document.body.dataset.lang].play : dict[document.body.dataset.lang].pause;
-    if (!isPaused) {
-      startTime = Date.now() - elapsed;
-      step();
-    }
   }
 });
 
-resetBtn.addEventListener("click", initViz);
-speedSlider.addEventListener("input", updateSpeed);
-optimChk.addEventListener("change", initViz);
-styleSelect.addEventListener("change", draw);
-themeBtn.addEventListener("click", () => {
-  document.body.dataset.theme =
-    document.body.dataset.theme === "light" ? "dark" : "light";
+resetBtn.addEventListener("click", () => {
+  if (isRunning) isPaused = true;
+  array = randArray();
+  generator = chooseGenerator();
+  resetState();
   draw();
-});
-langBtn.addEventListener("click", () => applyLang(document.body.dataset.lang === "en" ? "ru" : "en"));
-helpBtn.addEventListener("click", () => helpModal.classList.remove("hidden"));
-closeHelpBtn.addEventListener("click", () => helpModal.classList.add("hidden"));
-backBtn.addEventListener("click", () => {
-  viz.classList.remove("active");
-  menu.classList.add("active");
+  runtimeLbl.textContent = `Runtime: 0 ms`;
 });
 
-/* Apply initial language */
+speedSlider.addEventListener("input", () => {
+  updateSpeed();
+});
+
+optimChk.addEventListener("change", () => {
+  if (!isRunning) {
+    array = randArray();
+    generator = chooseGenerator();
+    draw();
+  }
+});
+
+soundChk.addEventListener("change", () => {
+  // no action needed here but placeholder for future
+});
+
+themeBtn.addEventListener("click", () => {
+  document.body.dataset.theme = document.body.dataset.theme === "dark" ? "light" : "dark";
+  draw();
+});
+
+langBtn.addEventListener("click", () => {
+  applyLang(document.body.dataset.lang === "en" ? "ru" : "en");
+});
+
+helpBtn.addEventListener("click", () => {
+  helpModal.classList.remove("hidden");
+});
+
+closeHelpBtn.addEventListener("click", () => {
+  helpModal.classList.add("hidden");
+});
+
+backBtn.addEventListener("click", () => {
+  isPaused = false;
+  isRunning = false;
+  menu.classList.add("active");
+  viz.classList.remove("active");
+});
+
 applyLang("en");
+resetBtn.click();

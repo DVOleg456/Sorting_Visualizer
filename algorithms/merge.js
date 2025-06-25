@@ -1,50 +1,41 @@
-function* merge(arr, left, mid, right) {
-  let n1 = mid - left + 1;
-  let n2 = right - mid;
-  let L = arr.slice(left, mid + 1);
-  let R = arr.slice(mid + 1, right + 1);
+export function* mergeSort(arr, optimized = false) {
+  const aux = new Array(arr.length);
 
-  let i = 0, j = 0, k = left;
+  function* merge(low, mid, high) {
+    let i = low, j = mid + 1, k = low;
+    for (let idx = low; idx <= high; idx++) aux[idx] = arr[idx];
 
-  while (i < n1 && j < n2) {
-    yield ["compare", left + i, mid + 1 + j, [...arr]];
-    if (L[i] <= R[j]) {
-      arr[k] = L[i];
-      i++;
-      yield ["swap", k, left + i - 1, [...arr]];
-    } else {
-      arr[k] = R[j];
-      j++;
-      yield ["swap", k, mid + 1 + j - 1, [...arr]];
+    yield ["merge", -1, -1, [...arr], { low, high, aux: aux.slice(low, high + 1) }];
+
+    while (i <= mid && j <= high) {
+      yield ["compare", i, j, [...arr], { low, high, aux: aux.slice(low, high + 1) }];
+      if (aux[i] <= aux[j]) {
+        arr[k++] = aux[i++];
+      } else {
+        arr[k++] = aux[j++];
+      }
+      yield ["swap", k - 1, i - 1, [...arr], { low, high, aux: aux.slice(low, high + 1) }];
     }
-    k++;
+
+    while (i <= mid) {
+      arr[k++] = aux[i++];
+      yield ["swap", k - 1, i - 1, [...arr], { low, high, aux: aux.slice(low, high + 1) }];
+    }
+
+    while (j <= high) {
+      arr[k++] = aux[j++];
+      yield ["swap", k - 1, j - 1, [...arr], { low, high, aux: aux.slice(low, high + 1) }];
+    }
   }
 
-  while (i < n1) {
-    arr[k] = L[i];
-    i++;
-    k++;
-    yield ["swap", k - 1, left + i - 1, [...arr]];
+  function* mergeSortRec(low, high) {
+    if (low >= high) return;
+    const mid = Math.floor((low + high) / 2);
+    yield* mergeSortRec(low, mid);
+    yield* mergeSortRec(mid + 1, high);
+    yield* merge(low, mid, high);
   }
 
-  while (j < n2) {
-    arr[k] = R[j];
-    j++;
-    k++;
-    yield ["swap", k - 1, mid + j, [...arr]];
-  }
-}
-
-function* mergeSortHelper(arr, left, right) {
-  if (left < right) {
-    const mid = Math.floor((left + right) / 2);
-    yield* mergeSortHelper(arr, left, mid);
-    yield* mergeSortHelper(arr, mid + 1, right);
-    yield* merge(arr, left, mid, right);
-  }
-}
-
-export function* mergeSort(arr, optimised = true) {
-  yield* mergeSortHelper(arr, 0, arr.length - 1);
-  yield ["done", -1, -1, [...arr]];
+  yield* mergeSortRec(0, arr.length - 1);
+  yield ["done", -1, -1, [...arr], {}];
 }

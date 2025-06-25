@@ -1,30 +1,62 @@
 :root {
   --bg: #f8f9fa; --fg: #222; --card: #fff;
   --accent: #6ea8ff; --accentH: #5291f5; --border: #ccc;
+  --sorted-bg: #e1f0ff;
+  --highlight: #ff6b6b;
 }
+
 [data-theme="dark"] {
   --bg: #1e1f22; --fg: #f0f0f0; --card: #2c2d31;
   --accent: #4f8dff; --accentH: #3c72db; --border: #555;
+  --sorted-bg: #2a3e55;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
 body {
-  font-family: "Inter","Segoe UI",sans-serif;
-  background: var(--bg); color: var(--fg);
-  display: flex; flex-direction: column;
+  font-family: "Inter", "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
 }
-.screen { display: none; flex: 1; padding: 20px; align-items: center; flex-direction: column; }
+
+.screen {
+  display: none;
+  flex: 1;
+  padding: 20px;
+  align-items: center;
+  flex-direction: column;
+}
 .screen.active { display: flex; }
 
-#menu h1 { margin-bottom: 12px; text-align: center; }
-#menu select, #menu button { margin: 8px; font-size: 1.05rem; padding: 8px 12px; }
+#menu h1 {
+  margin-bottom: 12px;
+  text-align: center;
+}
+#menu select,
+#menu button {
+  margin: 8px;
+  font-size: 1.05rem;
+  padding: 8px 12px;
+}
 
 #controls {
-  display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
-  gap: 8px 10px; margin-bottom: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 10px;
+  margin-bottom: 12px;
 }
-#controls > * { font-size: 1rem; }
+#controls > * {
+  font-size: 1rem;
+}
 
 button {
   cursor: pointer;
@@ -35,7 +67,9 @@ button {
   border-radius: 6px;
   transition: background 0.25s;
 }
-button:hover { background: var(--accentH); }
+button:hover {
+  background: var(--accentH);
+}
 
 input[type="range"] {
   vertical-align: middle;
@@ -49,16 +83,71 @@ input[type="range"] {
   width: 100%;
   max-width: 960px;
   height: 40vh;
+  transition: background 0.3s ease;
 }
-#runtime { margin-top: 8px; font-weight: 600; }
 
+/* Merge Sort: Top auxiliary array */
+.aux-array {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.aux-array .item {
+  width: 30px;
+  height: 30px;
+  background: var(--sorted-bg);
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+/* Heap Sort: Bottom output array */
+.heap-output {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+.heap-output .item {
+  width: 30px;
+  height: 30px;
+  background: var(--accent);
+  color: #fff;
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+/* Runtime label */
+#runtime {
+  margin-top: 8px;
+  font-weight: 600;
+}
+
+/* Help Modal */
 .modal {
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,0.55);
-  display: flex; justify-content: center; align-items: center;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  justify-content: center;
+  align-items: center;
   z-index: 1000;
 }
-.modal.hidden { display: none; }
+.modal.hidden {
+  display: none;
+}
 .modal-content {
   background: var(--card);
   color: var(--fg);
@@ -67,16 +156,26 @@ input[type="range"] {
   max-width: 420px;
   max-height: 80vh;
   overflow-y: auto;
-  box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
 }
 .modal-content ul {
   margin: 12px 0 16px;
   padding-left: 18px;
 }
-.modal-content li { margin-bottom: 6px; }
+.modal-content li {
+  margin-bottom: 6px;
+}
 
+/* Responsive */
 @media (max-width: 600px) {
-  #controls { flex-direction: column; gap: 6px; }
-  button { width: 100%; }
-  #canvas { height: 50vh; }
+  #controls {
+    flex-direction: column;
+    gap: 6px;
+  }
+  button {
+    width: 100%;
+  }
+  #canvas {
+    height: 50vh;
+  }
 }

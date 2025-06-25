@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Sorting Visualizer</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body data-theme="light" data-lang="en">
 
-  <!-- MENU -->
+  <!-- MAIN MENU -->
   <div id="menu" class="screen active">
     <h1 data-i18n="title">Sorting Algorithm Visualizer</h1>
     <label for="algorithm-select" data-i18n="choose">Choose an algorithm:</label>
@@ -25,25 +25,22 @@
 
   <!-- VISUALIZER -->
   <div id="visualizer" class="screen">
+    
+    <!-- Top Output: Used for Merge Sort's sorted view -->
+    <div id="aux-array" class="aux-array"></div>
+
+    <!-- Controls -->
     <div id="controls">
       <button id="play-pause-btn" data-i18n="play">▶️ Start</button>
       <button id="reset-btn" data-i18n="reset">🔄 Reset</button>
 
       <label>
         <span data-i18n="speedLbl">Speed:</span>
-        <input type="range" id="speed-range" min="1" max="10" value="5">
+        <input type="range" id="speed-range" min="1" max="10" value="5" />
       </label>
 
-      <label><input type="checkbox" id="optimised-chk" checked> <span data-i18n="optimised">Optimised</span></label>
-      <label><input type="checkbox" id="sound-chk" checked> <span data-i18n="sound">Sound</span></label>
-
-      <label>
-        <span data-i18n="styleLbl">Style:</span>
-        <select id="style-select">
-          <option value="bars" data-i18n="bars">Bars</option>
-          <option value="dots" data-i18n="dots">Dots</option>
-        </select>
-      </label>
+      <label><input type="checkbox" id="optimised-chk" checked /> <span data-i18n="optimised">Optimised</span></label>
+      <label><input type="checkbox" id="sound-chk" checked /> <span data-i18n="sound">Sound</span></label>
 
       <button id="lang-btn">🌐 RU/EN</button>
       <button id="theme-btn">🌓 Theme</button>
@@ -51,7 +48,13 @@
       <button id="back-btn" data-i18n="menu">⬅️ Menu</button>
     </div>
 
+    <!-- Main Canvas -->
     <canvas id="canvas"></canvas>
+
+    <!-- Bottom Output: Used for Heap Sort output -->
+    <div id="heap-output" class="heap-output"></div>
+
+    <!-- Runtime Indicator -->
     <div id="runtime">Runtime: 0 ms</div>
   </div>
 
@@ -64,6 +67,7 @@
     </div>
   </div>
 
+  <!-- Scripts -->
   <script type="module" src="visualizer.js"></script>
 </body>
 </html>

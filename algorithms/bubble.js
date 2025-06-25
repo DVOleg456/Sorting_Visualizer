@@ -1,16 +1,18 @@
-export function* bubbleSort(arr, optimised = true) {
+export function* bubbleSort(arr, optimized = false) {
   const n = arr.length;
-  for (let i = 0; i < n; i++) {
-    let swapped = false;
+  let swapped;
+
+  for (let i = 0; i < n - 1; i++) {
+    swapped = false;
     for (let j = 0; j < n - i - 1; j++) {
-      yield ["compare", j, j + 1, [...arr]];
+      yield ["compare", j, j + 1, [...arr], {}];
       if (arr[j] > arr[j + 1]) {
         [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
         swapped = true;
-        yield ["swap", j, j + 1, [...arr]];
+        yield ["swap", j, j + 1, [...arr], {}];
       }
     }
-    if (optimised && !swapped) break;
+    if (optimized && !swapped) break;
   }
-  yield ["done", -1, -1, [...arr]];
+  yield ["done", -1, -1, [...arr], {}];
 }
