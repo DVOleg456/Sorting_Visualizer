@@ -126,6 +126,9 @@ let quickPivot = -1;
 let mergeAux = null, mergeRange = null;
 let heapPositions = [], heapSortedArray = [];
 
+// Initialize mergeStages as an empty array instead of null
+let mergeStages = [];
+
 /* Speed helper */
 function updateSpeed() {
   speed = 600 - Number(speedSlider.value) * 50;
@@ -242,46 +245,92 @@ function drawQuick() {
 function drawMerge() {
   ctx.clearRect(0, 0, cvs.width, cvs.height);
 
+  if (!mergeStages || mergeStages.length === 0) return;
+
+  const boxSize = 36;
+  const spacing = 4;
+  const rowHeight = 60;
+  const topY = 20;
   const n = array.length;
-  const maxVal = Math.max(...array);
-  const barW = Math.max(18, Math.floor(cvs.width / (n * 1.5)));
-  const gap = Math.floor(barW * 0.3);
-  const tot = barW + gap;
-  const ofs = (cvs.width - (tot * n - gap)) / 2;
-  const bottomY = cvs.height * 0.75;
-  const topY = cvs.height * 0.3;
+  const startX = (cvs.width - n * (boxSize + spacing)) / 2;
 
-  // Draw main array as squares
-  array.forEach((v, i) => {
-    const x = ofs + i * tot;
-    const col = highlight.includes(i) ? "#ff6b6b" : "#6ea8ff";
-
-    ctx.fillStyle = col;
-    ctx.fillRect(x, bottomY - barW, barW, barW);
-
-    ctx.fillStyle = document.body.dataset.theme === "dark" ? "#ddd" : "#444";
-    ctx.font = "12px Inter";
+  // Draw initial array on top
+  for (let i = 0; i < n; i++) {
+    const x = startX + i * (boxSize + spacing);
+    ctx.fillStyle = "#6ea8ff";
+    ctx.fillRect(x, topY, boxSize, boxSize);
+    ctx.fillStyle = "#000";
+    ctx.font = "14px sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(v, x + barW / 2, bottomY - barW / 2);
-  });
+    ctx.fillText(array[i], x + boxSize / 2, topY + boxSize / 2);
+  }
 
-  // Draw aux array on top as circles showing merged part progress
-  if (mergeAux && mergeRange) {
-    mergeAux.forEach((val, idx) => {
-      const x = ofs + (mergeRange.left + idx) * tot + barW / 2;
-      ctx.beginPath();
-      ctx.arc(x, topY, barW * 0.35, 0, 2 * Math.PI);
-      ctx.fillStyle = "#ff9900";
-      ctx.fill();
+  mergeStages.forEach(stage => {
+    const { left, right, depth, values, type } = stage;
+    const y = topY + (depth + 1) * rowHeight;
+    const xStart = startX + left * (boxSize + spacing);
+    const groupWidth = (values.length * (boxSize + spacing)) - spacing;
+    const groupMidX = xStart + groupWidth / 2;
+    const midIndex = Math.floor(values.length / 2);
 
-      ctx.fillStyle = document.body.dataset.theme === "dark" ? "#222" : "#222";
-      ctx.font = "14px Inter";
+    // Draw bounding block around the full group
+    ctx.strokeStyle = "#999";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(xStart - 4, y - 4, groupWidth + 8, boxSize + 8);
+
+    // Draw boxes inside group
+    for (let i = 0; i < values.length; i++) {
+      const x = xStart + i * (boxSize + spacing);
+      let fillColor;
+
+      if (type === "split") {
+        fillColor = i < midIndex ? "#cce5ff" : "#99ccff";
+      } else {
+        fillColor = i < midIndex ? "#fff4b2" : "#ffe680";
+      }
+
+      ctx.fillStyle = fillColor;
+      ctx.fillRect(x, y, boxSize, boxSize);
+
+      ctx.fillStyle = "#000";
+      ctx.font = "14px sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText(val, x, topY);
-    });
+      ctx.fillText(values[i], x + boxSize / 2, y + boxSize / 2);
+    }
+
+    // Draw lines from parent block to current boxes
+    const parentY = y - rowHeight + boxSize;
+    for (let i = 0; i < values.length; i++) {
+      const x = xStart + i * (boxSize + spacing) + boxSize / 2;
+      ctx.beginPath();
+      ctx.moveTo(groupMidX, parentY);
+      ctx.lineTo(x, y);
+      ctx.strokeStyle = type === "split" ? "#0000cc" : "#008800";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+  });
+
+  // Draw final result array at the very bottom
+  const finalY = topY + (getMaxDepth(mergeStages) + 2) * rowHeight;
+  for (let i = 0; i < array.length; i++) {
+    const x = startX + i * (boxSize + spacing);
+    ctx.fillStyle = "#ffcc99";
+    ctx.fillRect(x, finalY, boxSize, boxSize);
+
+    ctx.fillStyle = "#222";
+    ctx.font = "14px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(array[i], x + boxSize / 2, finalY + boxSize / 2);
   }
+}
+
+// Helper to compute max depth
+function getMaxDepth(stages) {
+  return stages.reduce((max, s) => Math.max(max, s.depth), 0);
 }
 
 // Heap sort: Draw heap tree + sorted array squares below
@@ -396,15 +445,17 @@ function updateState(action, i, j, arr, extra) {
   else if (action === "swap") highlight = [i, j];
   else if (action === "pivot") quickPivot = i;
   else if (action === "merge") {
-    mergeRange = { left: extra.low, right: extra.high };
-    mergeAux = extra.aux || null;
-  } else if (action === "done") {
-    highlight = [];
-    quickPivot = -1;
-    mergeAux = null;
-    mergeRange = null;
-    heapSortedArray = [];
-  }
+  mergeStages = extra.stages || [];
+  }else if (action === "done") {
+  highlight = [];
+  quickPivot = -1;
+  mergeAux = null;
+  mergeRange = null;
+  if (algSelect.value !== "merge") mergeStages = null; // ✅ Only clear if not merge
+  heapSortedArray = [];
+}
+
+
 
   // For heap, capture sorted part to show squares below tree
   if (algSelect.value === "heap" && extra && "sortedArray" in extra) {
